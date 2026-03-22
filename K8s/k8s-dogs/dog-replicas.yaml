@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+    name: dog-replica
+    labels:
+      app: dogs
+spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: dogs
+    template:
+      metadata:
+        labels:
+          app: dogs
+      spec:
+         containers:
+         - name: dog-container
+           image: 459956101257.dkr.ecr.us-east-1.amazonaws.com/dog-repo:v0.2
+           ports:
+           - containerPort: 80
