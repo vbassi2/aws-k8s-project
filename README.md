@@ -1,1 +1,0 @@
-# aws-k8s-project

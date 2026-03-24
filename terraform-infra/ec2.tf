@@ -1,21 +1,17 @@
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
   owners      = ["amazon"]
-
   filter {
     name   = "name"
     values = ["amzn2-ami-hvm-*-x86_64-ebs"]
   }
 }
 
-
 resource "aws_instance" "k8s" {
   ami           = data.aws_ami.amazon_linux_2.id
   instance_type = "t3.medium"
 
-  root_block_device {
-    volume_size = 16
-  }
+  root_block_device { volume_size = 16 }
 
   user_data = <<-EOF
     #!/bin/bash
@@ -30,26 +26,27 @@ resource "aws_instance" "k8s" {
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
     rm -f ./kubectl
-    kind create cluster --config kind.yaml​
+    # kind create cluster --config kind.yaml  <-- remove for now
   EOF
 
   vpc_security_group_ids = [
     module.ec2_sg.security_group_id,
     module.dev_ssh_sg.security_group_id
   ]
-  iam_instance_profile = "Project2InstanceProfile"
 
-  tags = {
-    project = "project2"
-  }
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  depends_on           = [aws_iam_instance_profile.ec2_profile]
 
-  key_name                = "key1"
+  key_name                = "key1"  # Use existing AWS key
   monitoring              = true
   disable_api_termination = false
   ebs_optimized           = true
+
+  tags = { project = "project2" }
 }
 
+# DELETE or comment out this block if the key already exists
 resource "aws_key_pair" "k8s" {
-  key_name   = "key1"
-  public_key = file("${path.module}/key1.pub")
-}
+ key_name   = "key1"
+public_key = file("${path.module}/key1.pub")
+ }
