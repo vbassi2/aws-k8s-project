@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: dog-container
-    image: 459956101257.dkr.ecr.us-east-1.amazonaws.com/dog-repo:v0.2
+    image: 459956101257.dkr.ecr.us-east-1.amazonaws.com/project-dogs:latest
     ports:
     - containerPort: 80
     resources: {}

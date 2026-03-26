@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: cat-container
-        image: 459956101257.dkr.ecr.us-east-1.amazonaws.com/cat-repo:v0.2
+        image: 459956101257.dkr.ecr.us-east-1.amazonaws.com/project-cats:latest
         ports:
         - containerPort: 80
