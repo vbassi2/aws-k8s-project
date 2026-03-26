@@ -1,0 +1,58 @@
+varnikabassi@Varnikas-MacBook-Air workflows % cat dev-ci.yml 
+name: Dev CI
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'apps/**'
+      - 'K8s/**'
+      - '.github/workflows/dev-ci.yml'
+
+env:
+  ECR_CATS_REPO: project-cats
+  ECR_DOGS_REPO: project-dogs
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and tag cats image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ env.ECR_CATS_REPO }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:latest ./apps/cats-app
+          docker push $REGISTRY/$REPOSITORY:latest
+
+      - name: Build and tag dogs image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ${{ env.ECR_DOGS_REPO }}
+          
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:latest ./apps/dogs-app
+          docker push $REGISTRY/$REPOSITORY:latest
+
+
+      - name: Validate k8s manifests with kubeconform
+        run: |
+          curl -LO https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform-linux-amd64.tar.gz
+          chmod +x kubeconform
+          ./kubeconform -summary -strict K8s/
