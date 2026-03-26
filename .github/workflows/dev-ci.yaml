@@ -7,7 +7,7 @@ on:
     paths:
       - 'apps/**'
       - 'K8s/**'
-      - '.github/workflows/dev-ci.yml'
+      - '.github/workflows/dev-ci.yaml'
 
 env:
   ECR_CATS_REPO: project-cats
