@@ -1,4 +1,3 @@
-varnikabassi@Varnikas-MacBook-Air workflows % cat dev-ci.yml 
 name: Dev CI
 
 on:
