@@ -1,0 +1,102 @@
+name: Staging CD
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'apps/**'
+      - 'K8s/**'
+      - '.github/workflows/prod-cd-staging.yaml'
+
+env:
+  ECR_CATS_REPO: project-cats
+  ECR_DOGS_REPO: project-dogs
+
+jobs:
+
+  deploy:
+    name: Deploy to kind (EC2)
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy manifests to EC2
+        run: |
+          scp -r K8s/ ec2-user@${{ secrets.EC2_HOST }}:~/K8s/
+
+      # Pull the image dev-ci already built & validated — no rebuild
+      - name: Deploy on EC2
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          CATS_REPO: ${{ env.ECR_CATS_REPO }}
+          DOGS_REPO: ${{ env.ECR_DOGS_REPO }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ssh ec2-user@${{ secrets.EC2_HOST }} bash -s << REMOTE
+            set -euo pipefail
+
+            CATS_IMAGE="${REGISTRY}/${CATS_REPO}:latest"
+            DOGS_IMAGE="${REGISTRY}/${DOGS_REPO}:latest"
+
+            # ── 1. Authenticate Docker on EC2 against ECR 
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | docker login --username AWS --password-stdin ${REGISTRY}
+
+            # ── 2. Pull fresh :latest images from ECR 
+            docker pull \$CATS_IMAGE
+            docker pull \$DOGS_IMAGE
+
+            # ── 3. Load images into kind (kind can't reach ECR directly) ───
+            kind load docker-image \$CATS_IMAGE --name kind
+            kind load docker-image \$DOGS_IMAGE --name kind
+
+            # ── 4. Apply manifests (kubectl apply is idempotent) ───────────
+            kubectl apply -f ~/K8s/k8s-cats/cat-deployment.yaml
+            kubectl apply -f ~/K8s/k8s-cats/cat-nodeport-service.yaml
+            kubectl apply -f ~/K8s/k8s-dogs/dog-deployment.yaml
+            kubectl apply -f ~/K8s/k8s-dogs/dog-nodeport-service.yaml
+
+            # ── 5. Force pods to re-pull the newly loaded image ────────────
+            kubectl rollout restart deployment/cat-deployment
+            kubectl rollout restart deployment/dog-deployment
+
+            # ── 6. Wait for rollout to complete (fail fast) ────────────────
+            kubectl rollout status deployment/cat-deployment --timeout=120s
+            kubectl rollout status deployment/dog-deployment --timeout=120s
+
+            echo "✅ Deployment complete — cats @ :30001, dogs @ :30000"
+          REMOTE
+
+      # ── 8. Quick smoke-test: both NodePorts must return HTTP 200 ─────────
+      - name: Smoke test — cats app
+        run: |
+          curl --fail --retry 5 --retry-delay 5 \
+            http://${{ secrets.EC2_HOST }}:30001
+
+      - name: Smoke test — dogs app
+        run: |
+          curl --fail --retry 5 --retry-delay 5 \
+            http://${{ secrets.EC2_HOST }}:30000
+
