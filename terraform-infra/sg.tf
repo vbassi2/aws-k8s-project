@@ -1,22 +1,43 @@
 module "dev_ssh_sg" {
   source = "terraform-aws-modules/security-group/aws"
 
-  name        = "ec2_sg"
-  description = "Security group for ec2_sg"
+  name        = "dev_ssh_sg"
+  description = "Security group for SSH (restricted)"
   vpc_id      = data.aws_vpc.default.id
 
-  ingress_cidr_blocks = ["127.0.0.1/32"]
-  ingress_rules       = ["ssh-tcp"]
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"  
+    }
+  ]
+
+  egress_rules = ["all-all"]
 }
 
 module "ec2_sg" {
   source = "terraform-aws-modules/security-group/aws"
 
-  name        = "ec2_sg"
-  description = "Security group for ec2_sg"
+  name        = "ec2_app_sg"
+  description = "Security group for EC2 app access"
   vpc_id      = data.aws_vpc.default.id
 
-  ingress_cidr_blocks = ["0.0.0.0/0"]
-  ingress_rules       = ["ssh-tcp"]
-  egress_rules        = ["all-all"]
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 30000
+      to_port     = 30001
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0" # for testing only
+    }
+  ]
+
+  egress_rules = ["all-all"]
 }
