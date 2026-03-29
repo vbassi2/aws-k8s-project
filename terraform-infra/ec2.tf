@@ -26,7 +26,7 @@ resource "aws_instance" "k8s" {
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
     rm -f ./kubectl
-    # kind create cluster --config kind.yaml  <-- remove for now
+    kind create cluster --config kind.yaml 
   EOF
 
   vpc_security_group_ids = [
@@ -47,6 +47,6 @@ resource "aws_instance" "k8s" {
 
 # DELETE or comment out this block if the key already exists
 resource "aws_key_pair" "k8s" {
- key_name   = "key1"
+key_name   = "key1"
 public_key = file("${path.module}/key1.pub")
- }
+}
