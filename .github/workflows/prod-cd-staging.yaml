@@ -67,6 +67,20 @@ jobs:
               sudo systemctl enable --now docker
               sudo systemctl is-active --quiet docker || { echo "Docker failed to start"; exit 1; }
 
+              # ── 1.5. Ensure kind is installed on EC2 ───────────────────────
+              if ! command -v kind >/dev/null 2>&1; then
+                curl -sLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.11.0/kind-linux-amd64
+                sudo install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
+                rm -f /tmp/kind
+              fi
+
+              # ── 1.6. Ensure kubectl is installed on EC2 ───────────────────
+              if ! command -v kubectl >/dev/null 2>&1; then
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+                rm -f kubectl
+              fi
+
               # ── 2. Authenticate Docker on EC2 against ECR ─────────────────
               aws ecr get-login-password --region "${AWS_REGION}" \
                 | sudo docker login --username AWS --password-stdin "${REGISTRY}"
