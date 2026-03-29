@@ -14,7 +14,6 @@ env:
   ECR_DOGS_REPO: project-dogs
 
 jobs:
-
   deploy:
     name: Deploy to kind (EC2)
     runs-on: ubuntu-latest
@@ -43,10 +42,9 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy manifests to EC2
-        run: | 
+        run: |
           scp -r K8s ec2-user@${{ secrets.EC2_HOST }}:~/
 
-      # Pull the image dev-ci already built & validated — no rebuild
       - name: Deploy on EC2
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -54,42 +52,50 @@ jobs:
           DOGS_REPO: ${{ env.ECR_DOGS_REPO }}
           AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
-          ssh ec2-user@${{ secrets.EC2_HOST }} bash -s << REMOTE
-            set -euo pipefail
+          ssh ec2-user@${{ secrets.EC2_HOST }} \
+            REGISTRY="$REGISTRY" \
+            CATS_REPO="$CATS_REPO" \
+            DOGS_REPO="$DOGS_REPO" \
+            AWS_REGION="$AWS_REGION" \
+            bash -s << 'REMOTE'
+              set -euo pipefail
 
-            CATS_IMAGE="${REGISTRY}/${CATS_REPO}:latest"
-            DOGS_IMAGE="${REGISTRY}/${DOGS_REPO}:latest"
+              CATS_IMAGE="${REGISTRY}/${CATS_REPO}:latest"
+              DOGS_IMAGE="${REGISTRY}/${DOGS_REPO}:latest"
 
-            # ── 1. Authenticate Docker on EC2 against ECR 
-            aws ecr get-login-password --region ${AWS_REGION} \
-              | docker login --username AWS --password-stdin ${REGISTRY}
+              # ── 1. Ensure Docker is running ────────────────────────────────
+              sudo systemctl enable --now docker
+              sudo systemctl is-active --quiet docker || { echo "Docker failed to start"; exit 1; }
 
-            # ── 2. Pull fresh :latest images from ECR 
-            docker pull \$CATS_IMAGE
-            docker pull \$DOGS_IMAGE
+              # ── 2. Authenticate Docker on EC2 against ECR ─────────────────
+              aws ecr get-login-password --region "${AWS_REGION}" \
+                | sudo docker login --username AWS --password-stdin "${REGISTRY}"
 
-            # ── 3. Load images into kind (kind can't reach ECR directly) ───
-            kind load docker-image \$CATS_IMAGE --name kind
-            kind load docker-image \$DOGS_IMAGE --name kind
+              # ── 3. Pull fresh :latest images from ECR ─────────────────────
+              sudo docker pull "${CATS_IMAGE}"
+              sudo docker pull "${DOGS_IMAGE}"
 
-            # ── 4. Apply manifests (kubectl apply is idempotent) ───────────
-            kubectl apply -f ~/K8s/k8s-cats/cat-deployment.yaml
-            kubectl apply -f ~/K8s/k8s-cats/cat-nodeport-service.yaml
-            kubectl apply -f ~/K8s/k8s-dogs/dog-deployment.yaml
-            kubectl apply -f ~/K8s/k8s-dogs/dog-nodeport-service.yaml
+              # ── 4. Load images into kind (kind can't reach ECR directly) ──
+              sudo kind load docker-image "${CATS_IMAGE}" --name kind
+              sudo kind load docker-image "${DOGS_IMAGE}" --name kind
 
-            # ── 5. Force pods to re-pull the newly loaded image ────────────
-            kubectl rollout restart deployment/cat-deployment
-            kubectl rollout restart deployment/dog-deployment
+              # ── 5. Apply manifests ─────────────────────────────────────────
+              kubectl apply -f ~/K8s/k8s-cats/cat-deployment.yaml
+              kubectl apply -f ~/K8s/k8s-cats/cat-nodeport-service.yaml
+              kubectl apply -f ~/K8s/k8s-dogs/dog-deployment.yaml
+              kubectl apply -f ~/K8s/k8s-dogs/dog-nodeport-service.yaml
 
-            # ── 6. Wait for rollout to complete (fail fast) ────────────────
-            kubectl rollout status deployment/cat-deployment --timeout=120s
-            kubectl rollout status deployment/dog-deployment --timeout=120s
+              # ── 6. Force pods to re-pull the newly loaded image ────────────
+              kubectl rollout restart deployment/cat-deployment
+              kubectl rollout restart deployment/dog-deployment
 
-            echo "✅ Deployment complete — cats @ :30001, dogs @ :30000"
+              # ── 7. Wait for rollout to complete ────────────────────────────
+              kubectl rollout status deployment/cat-deployment --timeout=120s
+              kubectl rollout status deployment/dog-deployment --timeout=120s
+
+              echo "✅ Deployment complete — cats @ :30001, dogs @ :30000"
           REMOTE
 
-      # ── 8. Quick smoke-test: both NodePorts must return HTTP 200 ─────────
       - name: Smoke test — cats app
         run: |
           curl --fail --retry 5 --retry-delay 5 \
