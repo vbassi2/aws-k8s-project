@@ -43,8 +43,8 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy manifests to EC2
-        run: |
-          scp -r K8s/ ec2-user@${{ secrets.EC2_HOST }}:~/K8s/
+        run: | 
+          scp -r K8s ec2-user@${{ secrets.EC2_HOST }}:~/
 
       # Pull the image dev-ci already built & validated — no rebuild
       - name: Deploy on EC2
