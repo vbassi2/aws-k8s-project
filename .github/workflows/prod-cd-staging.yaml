@@ -81,6 +81,11 @@ jobs:
                 rm -f kubectl
               fi
 
+              # ── 1.7. Ensure kind cluster exists ───────────────────────────
+              if ! kind get clusters | grep -qx kind; then
+                kind create cluster --name kind --wait 5m
+              fi
+
               # ── 2. Authenticate Docker on EC2 against ECR ─────────────────
               aws ecr get-login-password --region "${AWS_REGION}" \
                 | sudo docker login --username AWS --password-stdin "${REGISTRY}"
@@ -90,8 +95,8 @@ jobs:
               sudo docker pull "${DOGS_IMAGE}"
 
               # ── 4. Load images into kind (kind can't reach ECR directly) ──
-              sudo kind load docker-image "${CATS_IMAGE}" --name kind
-              sudo kind load docker-image "${DOGS_IMAGE}" --name kind
+              kind load docker-image "${CATS_IMAGE}" --name kind
+              kind load docker-image "${DOGS_IMAGE}" --name kind
 
               # ── 5. Apply manifests ─────────────────────────────────────────
               kubectl apply -f ~/K8s/k8s-cats/cat-deployment.yaml
