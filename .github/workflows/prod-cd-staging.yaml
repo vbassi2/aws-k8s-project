@@ -44,6 +44,7 @@ jobs:
       - name: Copy manifests to EC2
         run: |
           scp -r K8s ec2-user@${{ secrets.EC2_HOST }}:~/
+          scp terraform-infra/kind.yaml ec2-user@${{ secrets.EC2_HOST }}:~/kind.yaml
 
       - name: Deploy on EC2
         env:
@@ -83,7 +84,7 @@ jobs:
 
               # ── 1.7. Ensure kind cluster exists ───────────────────────────
               if ! kind get clusters | grep -qx kind; then
-                kind create cluster --name kind --wait 5m
+                kind create cluster --name kind --config ~/kind.yaml --wait 5m
               fi
 
               # ── 2. Authenticate Docker on EC2 against ECR ─────────────────
