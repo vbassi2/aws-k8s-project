@@ -1,0 +1,130 @@
+name: Prod CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+      - 'K8s/**'
+      - '.github/workflows/prod-cd.yaml'
+
+env:
+  ECR_CATS_REPO: project-cats
+  ECR_DOGS_REPO: project-dogs
+
+jobs:
+  deploy:
+    name: Deploy to kind (EC2)
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy manifests to EC2
+        run: |
+          scp -r K8s ec2-user@${{ secrets.EC2_HOST }}:~/
+          scp terraform-infra/kind.yaml ec2-user@${{ secrets.EC2_HOST }}:~/kind.yaml
+
+      - name: Deploy on EC2
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          CATS_REPO: ${{ env.ECR_CATS_REPO }}
+          DOGS_REPO: ${{ env.ECR_DOGS_REPO }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          ssh ec2-user@${{ secrets.EC2_HOST }} \
+            REGISTRY="$REGISTRY" \
+            CATS_REPO="$CATS_REPO" \
+            DOGS_REPO="$DOGS_REPO" \
+            AWS_REGION="$AWS_REGION" \
+            bash -s << 'REMOTE'
+              set -euo pipefail
+
+              CATS_IMAGE="${REGISTRY}/${CATS_REPO}:latest"
+              DOGS_IMAGE="${REGISTRY}/${DOGS_REPO}:latest"
+
+              # 1. Ensure Docker is running 
+              sudo systemctl enable --now docker
+              sudo systemctl is-active --quiet docker || { echo "Docker failed to start"; exit 1; }
+
+              # 1.5. Ensure kind is installed on EC2 
+              if ! command -v kind >/dev/null 2>&1; then
+                curl -sLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.11.0/kind-linux-amd64
+                sudo install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
+                rm -f /tmp/kind
+              fi
+
+              # 1.6. Ensure kubectl is installed on EC2 
+              if ! command -v kubectl >/dev/null 2>&1; then
+                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+                rm -f kubectl
+              fi
+
+              # 1.7. Ensure kind cluster exists 
+              if ! kind get clusters | grep -qx kind; then
+                kind create cluster --name kind --config ~/kind.yaml --wait 5m
+              fi
+
+              # 2. Authenticate Docker on EC2 against ECR 
+              aws ecr get-login-password --region "${AWS_REGION}" \
+                | sudo docker login --username AWS --password-stdin "${REGISTRY}"
+
+              # 3. Pull fresh :latest images from ECR
+              sudo docker pull "${CATS_IMAGE}"
+              sudo docker pull "${DOGS_IMAGE}"
+
+              # 4. Load images into kind (kind can't reach ECR directly) 
+              kind load docker-image "${CATS_IMAGE}" --name kind
+              kind load docker-image "${DOGS_IMAGE}" --name kind
+
+              # 5. Apply manifests
+              kubectl apply -f ~/K8s/k8s-cats/cat-deployment.yaml
+              kubectl apply -f ~/K8s/k8s-cats/cat-nodeport-service.yaml
+              kubectl apply -f ~/K8s/k8s-dogs/dog-deployment.yaml
+              kubectl apply -f ~/K8s/k8s-dogs/dog-nodeport-service.yaml
+
+              # 6. Force pods to re-pull the newly loaded image 
+              kubectl rollout restart deployment/cat-deployment
+              kubectl rollout restart deployment/dog-deployment
+
+              # 7. Wait for rollout to complete 
+              kubectl rollout status deployment/cat-deployment --timeout=120s
+              kubectl rollout status deployment/dog-deployment --timeout=120s
+
+              echo "✅ Deployment complete — cats @ :30001, dogs @ :30000"
+          REMOTE
+
+      - name: Smoke test — cats app
+        run: |
+          curl --fail --retry 5 --retry-delay 5 \
+            http://${{ secrets.EC2_HOST }}:30001
+
+      - name: Smoke test — dogs app
+        run: |
+          curl --fail --retry 5 --retry-delay 5 \
+            http://${{ secrets.EC2_HOST }}:30000
+
+
+
