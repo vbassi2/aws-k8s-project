@@ -1,0 +1,27 @@
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Local Terraform directories
+.terraform/
+
+# SSH keys
+key1
+*.pem
+
+# Override variables files (may contain secrets)
+*.tfvars
+*.tfvars.json
+
+# CLI plan files
+*.plan
+
+# IDE / Cloud9
+.c9/
+*.swp
+*.swo
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
