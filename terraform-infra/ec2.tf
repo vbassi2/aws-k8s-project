@@ -43,13 +43,7 @@ resource "aws_instance" "k8s" {
 
   tags = { project = "project2" }
 }
-
-# DELETE or comment out this block if the key already exists
 resource "aws_key_pair" "k8s" {
 key_name   = "key1"
 public_key = file("${path.module}/key1.pub")
-<<<<<<< HEAD
- }
-=======
 }
->>>>>>> dev
