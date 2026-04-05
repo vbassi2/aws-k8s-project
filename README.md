@@ -23,7 +23,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 * CI/CD orchestrated using GitHub Actions
 * Remote deployment via SSH to EC2
 
-![Architecture Diagram](AWS_Kubernetes_kind_CI_CD_Pipeline-Architecture.png) 
+![Architecture Diagram](images/AWS_Kubernetes_kind_CI_CD_Pipeline-Architecture.png) 
 ---
 
 ## ⚙️ Tech Stack
@@ -53,14 +53,14 @@ The pipeline automates the full lifecycle from **code commit → container build
 * Push images to Amazon ECR
 * Validate Kubernetes manifests using `kubeconform`
 
-![Kubeconform validating K8 manifests ](kubeconform.png)
+![Kubeconform validating K8 manifests ](images/kubeconform.png)
 
 ✅ Ensures code is **buildable and deployment-ready**
 
-![Docker images build](Docker_images.png)
-![ECR Repo](ECRRepo.png)
-![Pushed cat image to ECR](CatsimageECR.png)
-![Pushed dog image to ECR](DogsImageECR.png)
+![Docker images build](images/Docker_images.png)
+![ECR Repo](images/ECRRepo.png)
+![Pushed cat image to ECR](images/CatsimageECR.png)
+![Pushed dog image to ECR](images/DogsImageECR.png)
 ---
 
 ### 🔹 2. Staging Branch — Pre-Production Deployment
@@ -83,11 +83,11 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ✅ Simulates real deployment before production
 
-![kind cluster status](kindcluster.png)
-![pods status](podsstatus.png)
-![deployment status](deploymentstatus.png)
-![Rollout updates](podsrollout.png)
-![Nodeport service status](k8service.png)
+![kind cluster status](images/kindcluster.png)
+![pods status](images/podsstatus.png)
+![deployment status](images/deploymentstatus.png)
+![Rollout updates](images/podsrollout.png)
+![Nodeport service status](images/k8service.png)
 
 ---
 
@@ -107,12 +107,12 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ✅ Ensures only validated code reaches production
 
-![portforwarding cats app](portforwardcats.jpg)
-![portforwarding dogs app](portforwarddogs.jpg)
-![curl to test cats locally](curlcats.png)
-![curl to test dogs locally](curldogs.png)
-![Test cats in browser](Browsercats.png)
-![Test dogs in browser](Browserdogs.png)
+![portforwarding cats app](images/portforwardcats.jpg)
+![portforwarding dogs app](images/portforwarddogs.jpg)
+![curl to test cats locally](images/curlcats.png)
+![curl to test dogs locally](images/curldogs.png)
+![Test cats in browser](images/Browsercats.png)
+![Test dogs in browser](images/Browserdogs.png)
 ---
 
 ## 📂 Project Structure
@@ -123,6 +123,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 ├── apps                  # Application source + Dockerfiles
 ├── K8s                   # Kubernetes manifests
 ├── terraform-infra       # Infrastructure configuration
+├── images                # All project images (for README)
 └── README.md
 ```
 
