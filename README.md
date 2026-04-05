@@ -55,6 +55,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ✅ Ensures code is **buildable and deployment-ready**
 
+![Architecture Diagram](ECR Repo.jpg) 
 ---
 
 ### 🔹 2. Staging Branch — Pre-Production Deployment
