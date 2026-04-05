@@ -57,7 +57,10 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ✅ Ensures code is **buildable and deployment-ready**
 
+![Docker images build](Docker_images.png)
 ![ECR Repo](ECRRepo.png)
+![Pushed cat image to ECR](CatsimageECR.png)
+![Pushed dog image to ECR](DogsImageECR.png)
 ---
 
 ### 🔹 2. Staging Branch — Pre-Production Deployment
