@@ -28,13 +28,13 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ## ⚙️ Tech Stack
 
-* **AWS:** EC2, ECR, IAM
+* **AWS:** EC2, ECR, IAM, Cloud9
 * **Containers:** Docker
 * **Orchestration:** Kubernetes (Kind)
 * **CI/CD:** GitHub Actions
 * **IaC:** Terraform
 * **Validation:** kubeconform
-* **Scripting:** Bash
+* **Scripting/Development:** Bash, Visual Studio Code (with embedded GitHub Copilot) 
 
 ---
 
