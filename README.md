@@ -53,6 +53,8 @@ The pipeline automates the full lifecycle from **code commit → container build
 * Push images to Amazon ECR
 * Validate Kubernetes manifests using `kubeconform`
 
+![Kubeconform validating K8 manifests ](kubeconform.png)
+
 ✅ Ensures code is **buildable and deployment-ready**
 
 ![ECR Repo](ECRRepo.png)
