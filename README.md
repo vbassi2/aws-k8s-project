@@ -23,6 +23,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 * CI/CD orchestrated using GitHub Actions
 * Remote deployment via SSH to EC2
 
+![Architecture Diagram](AWS_Kubernetes_kind_CI_CD_Pipeline-Architecture.png) 
 ---
 
 ## ⚙️ Tech Stack
