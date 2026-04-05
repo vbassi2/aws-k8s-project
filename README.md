@@ -35,7 +35,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 * **IaC:** Terraform
 * **Validation:** kubeconform
 * **Scripting/Development:** Bash, Visual Studio Code (with embedded GitHub Copilot) 
-
+* **Diagramming / Architecture:** draw.io
 ---
 
 ## 🔄 CI/CD Pipeline Design
