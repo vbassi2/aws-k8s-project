@@ -88,7 +88,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 ![deployment status](deploymentstatus.png)
 ![Rollout updates](podsrollout.png)
 ![Nodeport service status](k8service.png)
-![portforwarding cats app](portforwardcats.png)
+![portforwarding cats app](portforwardcats.jpg)
 ![portforwarding dogs app](portforwarddogs.jpg)
 ![curl to test cats locally](curlcats.png)
 ![curl to test dogs locally](curldogs.png)
