@@ -88,10 +88,7 @@ The pipeline automates the full lifecycle from **code commit → container build
 ![deployment status](deploymentstatus.png)
 ![Rollout updates](podsrollout.png)
 ![Nodeport service status](k8service.png)
-![portforwarding cats app](portforwardcats.jpg)
-![portforwarding dogs app](portforwarddogs.jpg)
-![curl to test cats locally](curlcats.png)
-![curl to test dogs locally](curldogs.png)
+
 ---
 
 ### 🔹 3. Main Branch — Production Deployment
@@ -110,6 +107,12 @@ The pipeline automates the full lifecycle from **code commit → container build
 
 ✅ Ensures only validated code reaches production
 
+![portforwarding cats app](portforwardcats.jpg)
+![portforwarding dogs app](portforwarddogs.jpg)
+![curl to test cats locally](curlcats.png)
+![curl to test dogs locally](curldogs.png)
+![Test cats in browser](Browsercats.png)
+![Test dogs in browser](Browserdogs.png)
 ---
 
 ## 📂 Project Structure
